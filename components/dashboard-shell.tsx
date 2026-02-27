@@ -14,11 +14,13 @@ import {
   X,
   Search,
   ChevronRight,
+  Heart,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const sidebarLinks = [
   { icon: MapPin, label: "Gym Finder", href: "/dashboard" },
+  { icon: Heart, label: "Match", href: "/dashboard/match" },
   { icon: BookOpen, label: "Exercises", href: "/dashboard/exercises" },
   { icon: MessageCircle, label: "Messages", href: "/dashboard/chat", badge: 3 },
   { icon: User, label: "Profile", href: "/dashboard/profile" },
