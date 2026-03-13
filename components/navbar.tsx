@@ -1,19 +1,54 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Dumbbell, Menu, X } from "lucide-react"
+import { Dumbbell, Menu, X, LogOut, User } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 const navLinks = [
   { label: "Home", href: "/" },
+  { label: "Find Gyms", href: "/gyms" },
   { label: "Features", href: "#features" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Community", href: "#community" },
 ]
 
-export function Navbar() {
+export function Navbar({ minimal = false }: { minimal?: boolean }) {
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const checkUser = () => {
+      const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"
+      if (isLoggedIn) {
+        setUser({
+          user_metadata: {
+            full_name: localStorage.getItem("userName") || "Manikanta"
+          }
+        })
+      } else {
+        setUser(null)
+      }
+      setLoading(false)
+    }
+
+    checkUser()
+
+    // Create a custom event listener to handle storage changes (like login/logout in other tabs)
+    window.addEventListener('storage', checkUser)
+    return () => window.removeEventListener('storage', checkUser)
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem("isLoggedIn")
+    localStorage.removeItem("userName")
+    setUser(null)
+    router.push("/")
+  }
 
   return (
     <nav className="fixed top-0 left-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -29,43 +64,70 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden items-center gap-8 md:flex">
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className="group relative text-sm uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {link.label}
-              <span className="absolute -bottom-1 left-0 h-[2px] w-0 bg-primary transition-all duration-300 group-hover:w-full" />
-            </Link>
-          ))}
-        </div>
+        {!minimal && (
+          <div className="hidden items-center gap-8 md:flex">
+            {navLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="group relative text-sm uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {link.label}
+                <span className="absolute -bottom-1 left-0 h-[2px] w-0 bg-primary transition-all duration-300 group-hover:w-full" />
+              </Link>
+            ))}
+          </div>
+        )}
 
         {/* CTA */}
         <div className="hidden items-center gap-4 md:flex">
-          <Link
-            href="/login"
-            className="text-sm uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Log In
-          </Link>
-          <Link
-            href="/register"
-            className="relative overflow-hidden rounded-sm bg-primary px-6 py-2.5 text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground transition-all duration-300 hover:shadow-[0_0_30px_oklch(0.65_0.25_25/0.4)]"
-          >
-            Join Now
-          </Link>
+          {!loading && !minimal && (
+            user ? (
+              <div className="flex items-center gap-6">
+                <Link
+                  href="/dashboard"
+                  className="group relative flex items-center gap-2 text-sm uppercase tracking-[0.15em] text-muted-foreground transition-all hover:text-foreground"
+                >
+                  <User className="h-4 w-4 text-primary" />
+                  Dashboard
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 text-sm uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-primary"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Log Out
+                </button>
+              </div>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-sm uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Log In
+                </Link>
+                <Link
+                  href="/register"
+                  className="relative overflow-hidden rounded-sm bg-primary px-6 py-2.5 text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground transition-all duration-300 hover:shadow-[0_0_30px_oklch(0.65_0.25_25/0.4)]"
+                >
+                  Join Now
+                </Link>
+              </>
+            )
+          )}
         </div>
 
         {/* Mobile toggle */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex h-10 w-10 items-center justify-center rounded-sm text-foreground md:hidden"
-          aria-label="Toggle menu"
-        >
-          {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        {!minimal && (
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex h-10 w-10 items-center justify-center rounded-sm text-foreground md:hidden"
+            aria-label="Toggle menu"
+          >
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        )}
       </div>
 
       {/* Mobile Menu */}
@@ -87,18 +149,44 @@ export function Navbar() {
             </Link>
           ))}
           <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
-            <Link
-              href="/login"
-              className="rounded-sm px-4 py-3 text-center text-sm uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Log In
-            </Link>
-            <Link
-              href="/register"
-              className="rounded-sm bg-primary px-4 py-3 text-center text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground"
-            >
-              Join Now
-            </Link>
+            {!loading && (
+              user ? (
+                <>
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center justify-center gap-2 rounded-sm bg-secondary px-4 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-foreground"
+                  >
+                    <User className="h-4 w-4 text-primary" />
+                     Dashboard
+                  </Link>
+                  <button
+                    onClick={() => { handleLogout(); setIsOpen(false); }}
+                    className="flex items-center justify-center gap-2 rounded-sm border border-border px-4 py-3 text-sm uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Log Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setIsOpen(false)}
+                    className="rounded-sm px-4 py-3 text-center text-sm uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setIsOpen(false)}
+                    className="rounded-sm bg-primary px-4 py-3 text-center text-sm font-semibold uppercase tracking-[0.15em] text-primary-foreground"
+                  >
+                    Join Now
+                  </Link>
+                </>
+              )
+            )}
           </div>
         </div>
       </div>

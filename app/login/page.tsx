@@ -1,23 +1,54 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Dumbbell, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react"
+import { Dumbbell, Eye, EyeOff, ArrowRight, Loader2, AlertCircle } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 export default function LoginPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
   const [formData, setFormData] = useState({ email: "", password: "" })
+  const [rememberMe, setRememberMe] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Auto-login if already logged in
+  useEffect(() => {
+    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"
+    if (isLoggedIn) {
+      router.push("/dashboard")
+    }
+
+    // Load remembered email
+    const savedEmail = localStorage.getItem("rememberedEmail")
+    if (savedEmail) {
+      setFormData(prev => ({ ...prev, email: savedEmail }))
+      setRememberMe(true)
+    }
+  }, [router])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError("")
+    
+    // Simulating login to bypass Supabase email limits for now
     setTimeout(() => {
+      // Mock session for UI development
+      localStorage.setItem("isLoggedIn", "true")
+      localStorage.setItem("userName", "Manikanta")
+      
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", formData.email)
+      } else {
+        localStorage.removeItem("rememberedEmail")
+      }
+
       router.push("/dashboard")
-    }, 1200)
+    }, 1000)
   }
 
   return (
@@ -73,6 +104,13 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {error && (
+          <div className="mt-6 flex items-center gap-3 rounded-sm border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-500 animate-in fade-in slide-in-from-top-1">
+            <AlertCircle className="h-4 w-4" />
+            <p className="font-medium">{error}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="mt-10 flex flex-col gap-6">
           {/* Email */}
           <div className="flex flex-col gap-2">
@@ -116,6 +154,35 @@ export default function LoginPage() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+          </div>
+
+          {/* Remember Me */}
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <div className="relative flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="peer h-4 w-4 appearance-none rounded-sm border border-border bg-input transition-all checked:border-primary checked:bg-primary"
+                />
+                <svg
+                  className="absolute h-3 w-3 text-primary-foreground opacity-0 transition-opacity peer-checked:opacity-100"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                >
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground transition-colors group-hover:text-foreground">
+                Remember Me
+              </span>
+            </label>
+            <Link href="/register" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+              Need an account?
+            </Link>
           </div>
 
           {/* Submit */}

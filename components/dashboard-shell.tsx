@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   Dumbbell,
   MapPin,
@@ -16,16 +17,42 @@ import {
   ChevronRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { supabase } from "@/lib/supabase"
 
 const sidebarLinks = [
-  { icon: MapPin, label: "Gym Finder", href: "/dashboard" },
+  { icon: MapPin, label: "Gym Finder", href: "/gyms" },
+  { icon: MapPin, label: "Dashboard", href: "/dashboard" },
   { icon: BookOpen, label: "Exercises", href: "/dashboard/exercises" },
   { icon: MessageCircle, label: "Messages", href: "/dashboard/chat", badge: 3 },
   { icon: User, label: "Profile", href: "/dashboard/profile" },
 ]
 
 export function DashboardShell({ children, activeTab = "Gym Finder" }: { children: React.ReactNode; activeTab?: string }) {
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    const checkUser = () => {
+      const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"
+      if (isLoggedIn) {
+        setUser({
+          user_metadata: {
+            full_name: localStorage.getItem("userName") || "Manikanta",
+            fitness_goal: localStorage.getItem("userGoal") || "Powerlifting"
+          }
+        })
+      }
+    }
+    checkUser()
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem("isLoggedIn")
+    localStorage.removeItem("userName")
+    localStorage.removeItem("userGoal")
+    router.push("/")
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -71,16 +98,20 @@ export function DashboardShell({ children, activeTab = "Gym Finder" }: { childre
         {/* User */}
         <div className="border-t border-border p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <span className="text-sm font-bold text-primary">M</span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
+              {user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
             </div>
-            <div className="flex-1">
-              <div className="text-sm font-medium text-foreground">Marcus J.</div>
-              <div className="text-xs text-muted-foreground">Powerlifting</div>
+            <div className="flex-1 overflow-hidden">
+              <div className="text-sm font-medium text-foreground truncate">{user?.user_metadata?.full_name || 'Gamer Rat'}</div>
+              <div className="text-xs text-muted-foreground truncate">{user?.user_metadata?.fitness_goal || 'Lifting'}</div>
             </div>
-            <Link href="/" className="text-muted-foreground transition-colors hover:text-foreground">
+            <button 
+              onClick={handleLogout}
+              className="text-muted-foreground transition-colors hover:text-primary"
+              title="Logout"
+            >
               <LogOut className="h-4 w-4" />
-            </Link>
+            </button>
           </div>
         </div>
       </aside>

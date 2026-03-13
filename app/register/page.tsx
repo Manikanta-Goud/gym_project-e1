@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Dumbbell, Eye, EyeOff, ArrowRight, Loader2, Check } from "lucide-react"
+import { Dumbbell, Eye, EyeOff, ArrowRight, Loader2, Check, AlertCircle, MapPin, Search, Plus, User, Shield, Navigation } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 const fitnessGoals = ["Bulking", "Cutting", "Strength", "Cardio"]
 const experienceLevels = ["Beginner", "Intermediate", "Advanced"]
@@ -13,25 +14,128 @@ export default function RegisterPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
   const [step, setStep] = useState(1)
+  const [gymSearch, setGymSearch] = useState("")
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searching, setSearching] = useState(false)
+  
+  // Auto-login if already logged in
+  useEffect(() => {
+    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"
+    if (isLoggedIn) {
+      router.push("/dashboard")
+    }
+  }, [router])
+  
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     fitnessGoal: "",
     experience: "",
+    hasGym: null as boolean | null,
+    gymId: "",
+    gymName: "",
+    gymAddress: "",
+    gymLat: "",
+    gymLng: "",
+    role: "member" as "member" | "trainer",
+    isNewGym: false
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Search gyms from Supabase
+  useEffect(() => {
+    const searchGyms = async () => {
+      if (gymSearch.length < 2) {
+        setSearchResults([])
+        return
+      }
+      setSearching(true)
+      try {
+        const { data, error } = await supabase
+          .from('gyms')
+          .select('*')
+          .ilike('name', `%${gymSearch}%`)
+          .limit(5)
+        
+        if (!error && data) {
+          setSearchResults(data)
+        }
+      } catch (err) {
+        console.error("Search failed", err)
+      } finally {
+        setSearching(false)
+      }
+    }
+
+    const timer = setTimeout(searchGyms, 500)
+    return () => clearTimeout(timer)
+  }, [gymSearch])
+
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setFormData(prev => ({
+            ...prev,
+            gymLat: pos.coords.latitude.toString(),
+            gymLng: pos.coords.longitude.toString()
+          }))
+        },
+        (err) => {
+          console.error(err)
+          setError("Could not get your location. Please enter coordinates manually.")
+        }
+      )
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (step === 1) {
-      setStep(2)
+    if (step < 3) {
+      setStep(step + 1)
       return
     }
+    
     setLoading(true)
-    setTimeout(() => {
+    setError("")
+
+    try {
+      let finalGymId = formData.gymId
+
+      // If it's a new gym, add it to the database first
+      if (formData.isNewGym && formData.gymName && formData.gymLat && formData.gymLng) {
+        const { data: newGym, error: gymError } = await supabase
+          .from('gyms')
+          .insert([{
+            name: formData.gymName,
+            address: formData.gymAddress,
+            lat: parseFloat(formData.gymLat),
+            lng: parseFloat(formData.gymLng),
+            trainer: formData.role === 'trainer' ? formData.name : null,
+            rating: 5.0,
+            open_now: true
+          }])
+          .select()
+          .single()
+
+        if (gymError) throw gymError
+        finalGymId = newGym.id
+      }
+
+      // Simulate signup success
+      localStorage.setItem("isLoggedIn", "true")
+      localStorage.setItem("userName", formData.name)
+      localStorage.setItem("userRole", formData.role)
+      localStorage.setItem("userGymId", finalGymId)
+      
       router.push("/dashboard")
-    }, 1200)
+    } catch (err: any) {
+      setError(err.message || "Registration failed")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -50,24 +154,29 @@ export default function RegisterPage() {
 
         {/* Step indicator */}
         <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-            {step > 1 ? <Check className="h-4 w-4" /> : "1"}
-          </div>
-          <span className={`h-px w-12 ${step > 1 ? "bg-primary" : "bg-border"}`} />
-          <div
-            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
-              step >= 2
-                ? "bg-primary text-primary-foreground"
-                : "border border-border text-muted-foreground"
-            }`}
-          >
-            2
-          </div>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${
+                  step > i
+                    ? "bg-primary text-primary-foreground"
+                    : step === i
+                    ? "ring-2 ring-primary ring-offset-4 ring-offset-background bg-primary text-primary-foreground"
+                    : "border border-border text-muted-foreground"
+                }`}
+              >
+                {step > i ? <Check className="h-4 w-4" /> : i}
+              </div>
+              {i < 3 && (
+                <span className={`h-px w-8 transition-all duration-500 ${step > i ? "bg-primary" : "bg-border"}`} />
+              )}
+            </div>
+          ))}
         </div>
 
         <div>
           <h1 className="font-[var(--font-oswald)] text-3xl font-bold uppercase text-foreground md:text-4xl">
-            {step === 1 ? "Create Account" : "Your Fitness Profile"}
+            {step === 1 ? "Create Account" : step === 2 ? "Your Fitness Profile" : "Gym Relationship"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {step === 1 ? (
@@ -77,14 +186,23 @@ export default function RegisterPage() {
                   Log in
                 </Link>
               </>
-            ) : (
+            ) : step === 2 ? (
               "Help us find your perfect gym partner."
+            ) : (
+              "Connect with your local gym community."
             )}
           </p>
         </div>
 
+        {error && (
+          <div className="mt-6 flex items-center gap-3 rounded-sm border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-500">
+            <AlertCircle className="h-4 w-4" />
+            <p className="font-medium">{error}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
-          {step === 1 ? (
+          {step === 1 && (
             <>
               {/* Name */}
               <div className="flex flex-col gap-2">
@@ -140,7 +258,9 @@ export default function RegisterPage() {
                 </div>
               </div>
             </>
-          ) : (
+          )}
+
+          {step === 2 && (
             <>
               {/* Fitness Goal */}
               <div className="flex flex-col gap-3">
@@ -190,6 +310,179 @@ export default function RegisterPage() {
             </>
           )}
 
+          {step === 3 && (
+            <div className="flex flex-col gap-6 animate-in slide-in-from-right-4 duration-500">
+              {/* Role Selection */}
+              <div className="flex flex-col gap-3">
+                <label className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                  Identify Yourself
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, role: "member" })}
+                    className={`flex flex-col items-center gap-2 rounded-sm border p-4 transition-all ${
+                      formData.role === "member"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/30"
+                    }`}
+                  >
+                    <User className="h-5 w-5" />
+                    <span className="text-xs font-bold uppercase">Member</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, role: "trainer" })}
+                    className={`flex flex-col items-center gap-2 rounded-sm border p-4 transition-all ${
+                      formData.role === "trainer"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/30"
+                    }`}
+                  >
+                    <Shield className="h-5 w-5" />
+                    <span className="text-xs font-bold uppercase">Trainer</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Gym Connection */}
+              <div className="flex flex-col gap-3">
+                <label className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                  Do you currently go to a gym?
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, hasGym: true })}
+                    className={`rounded-sm border py-3 text-sm font-bold transition-all ${
+                      formData.hasGym === true
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/30"
+                    }`}
+                  >
+                    YES
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, hasGym: false, gymId: "", isNewGym: false })}
+                    className={`rounded-sm border py-3 text-sm font-bold transition-all ${
+                      formData.hasGym === false
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/30"
+                    }`}
+                  >
+                    NO / SEARCH LATER
+                  </button>
+                </div>
+              </div>
+
+              {formData.hasGym && (
+                <div className="flex flex-col gap-4 p-4 rounded-sm border border-primary/20 bg-primary/5 animate-in fade-in duration-300">
+                  {!formData.isNewGym ? (
+                    <div className="space-y-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <input
+                          type="text"
+                          value={gymSearch}
+                          onChange={(e) => setGymSearch(e.target.value)}
+                          placeholder="Search your gym by name..."
+                          className="w-full rounded-sm border border-border bg-input py-3 pl-10 pr-4 text-sm outline-none focus:border-primary"
+                        />
+                      </div>
+
+                      {searching && <div className="text-center py-2"><Loader2 className="h-4 w-4 animate-spin inline mr-2" /><span className="text-xs">Searching...</span></div>}
+
+                      {searchResults.length > 0 && (
+                        <div className="flex flex-col gap-2">
+                          {searchResults.map((gym) => (
+                            <button
+                              key={gym.id}
+                              type="button"
+                              onClick={() => {
+                                setFormData({ ...formData, gymId: gym.id, gymName: gym.name });
+                                setGymSearch(gym.name);
+                                setSearchResults([]);
+                              }}
+                              className={`flex flex-col p-3 text-left rounded-sm border transition-all ${
+                                formData.gymId === gym.id ? "border-primary bg-primary/20" : "bg-card hover:border-primary/50"
+                              }`}
+                            >
+                              <span className="text-sm font-bold text-foreground">{gym.name}</span>
+                              <span className="text-xs text-muted-foreground">{gym.address}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, isNewGym: true, gymId: "", gymName: "" })}
+                        className="flex items-center gap-2 text-xs font-bold text-primary hover:underline"
+                      >
+                        <Plus className="h-3 w-3" />
+                        CAN'T FIND IT? ADD AS NEW GYM
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-xs font-bold text-primary uppercase tracking-wider">New Gym Details</p>
+                      <input
+                        type="text"
+                        placeholder="Gym Name"
+                        required
+                        value={formData.gymName}
+                        onChange={(e) => setFormData({ ...formData, gymName: e.target.value })}
+                        className="w-full rounded-sm border border-border bg-input py-3 px-4 text-sm"
+                      />
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <input
+                          type="text"
+                          placeholder="Area / Address"
+                          value={formData.gymAddress}
+                          onChange={(e) => setFormData({ ...formData, gymAddress: e.target.value })}
+                          className="w-full rounded-sm border border-border bg-input py-3 pl-10 pr-4 text-sm"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          placeholder="Latitude"
+                          value={formData.gymLat}
+                          onChange={(e) => setFormData({ ...formData, gymLat: e.target.value })}
+                          className="w-full rounded-sm border border-border bg-input py-3 px-4 text-xs"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Longitude"
+                          value={formData.gymLng}
+                          onChange={(e) => setFormData({ ...formData, gymLng: e.target.value })}
+                          className="w-full rounded-sm border border-border bg-input py-3 px-4 text-xs"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={getCurrentLocation}
+                        className="flex w-full items-center justify-center gap-2 rounded-sm border border-primary/30 py-2 text-xs font-bold text-primary hover:bg-primary/10"
+                      >
+                        <Navigation className="h-3 w-3" />
+                        USE MY CURRENT LOCATION
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, isNewGym: false })}
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Back to search
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Submit */}
           <button
             type="submit"
@@ -200,16 +493,16 @@ export default function RegisterPage() {
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                {step === 1 ? "Continue" : "Start Matching"}
+                {step === 1 ? "Continue" : step === 2 ? "Continue" : "Complete Registration"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </>
             )}
           </button>
 
-          {step === 2 && (
+          {step > 1 && (
             <button
               type="button"
-              onClick={() => setStep(1)}
+              onClick={() => setStep(step - 1)}
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               Back to previous step

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Oswald, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
+import ImageKitContext from '@/components/imagekit-provider'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -56,7 +57,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${oswald.variable} ${geistMono.variable}`}>
       <body className="font-sans antialiased noise-bg">
-        {children}
+        <ImageKitContext>
+          {children}
+        </ImageKitContext>
         <Analytics />
       </body>
     </html>

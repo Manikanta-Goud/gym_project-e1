@@ -13,7 +13,9 @@ import {
   Users,
   TrendingUp,
   Zap,
+  Navigation,
 } from "lucide-react"
+import { useState, useEffect } from "react"
 import { DashboardShell } from "@/components/dashboard-shell"
 
 const nearbyGyms = [
@@ -35,6 +37,15 @@ const quickWorkouts = [
 ]
 
 export default function DashboardPage() {
+  const [userName, setUserName] = useState("Athlete")
+
+  useEffect(() => {
+    const savedName = localStorage.getItem("userName")
+    if (savedName) {
+      setUserName(savedName)
+    }
+  }, [])
+
   return (
     <DashboardShell activeTab="Gym Finder">
       <div className="flex flex-col gap-6">
@@ -44,7 +55,7 @@ export default function DashboardPage() {
           <div className="relative flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between md:p-8">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
-                Good evening, Marcus
+                Good evening, {userName}
               </p>
               <h2 className="mt-1 font-[var(--font-oswald)] text-2xl font-bold uppercase text-foreground md:text-3xl">
                 Ready to crush it?
@@ -74,7 +85,7 @@ export default function DashboardPage() {
                   backgroundImage: "linear-gradient(oklch(0.3 0 0) 1px, transparent 1px), linear-gradient(90deg, oklch(0.3 0 0) 1px, transparent 1px)",
                   backgroundSize: "40px 40px"
                 }} />
-                
+
                 {/* Fake location markers */}
                 {nearbyGyms.map((gym, i) => (
                   <div
@@ -103,11 +114,20 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Expand overlay */}
-              <Link href="/dashboard/map" className="absolute inset-0 z-10 flex items-center justify-center bg-background/0 transition-all duration-300 group-hover:bg-background/30">
-                <span className="rounded-sm bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-primary-foreground opacity-0 transition-all duration-300 group-hover:opacity-100">
-                  Open Full Map
+              {/* Main Link to Real Map */}
+              <Link href="/gyms" className="absolute inset-0 z-10 flex items-center justify-center bg-background/0 transition-all duration-300 group-hover:bg-background/20">
+                <span className="rounded-sm bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-primary-foreground opacity-0 shadow-[0_0_20px_oklch(0.65_0.25_25/0.4)] transition-all duration-300 group-hover:opacity-100">
+                  Open Live Map
                 </span>
+              </Link>
+
+              {/* Floating Near Me Button */}
+              <Link
+                href="/gyms"
+                className="absolute bottom-4 right-4 z-20 flex h-10 w-10 items-center justify-center rounded-sm border border-primary/30 bg-background/80 text-primary backdrop-blur-sm transition-all hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_15px_oklch(0.65_0.25_25/0.4)]"
+                title="Near Me"
+              >
+                <Navigation className="h-4 w-4" />
               </Link>
             </div>
 
@@ -243,13 +263,12 @@ export default function DashboardPage() {
                       <span className="text-sm font-bold text-primary">{match.name[0]}</span>
                     </div>
                     <span
-                      className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-card ${
-                        match.status === "at-gym"
-                          ? "bg-primary"
-                          : match.status === "online"
+                      className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-card ${match.status === "at-gym"
+                        ? "bg-primary"
+                        : match.status === "online"
                           ? "bg-green-500"
                           : "bg-muted-foreground"
-                      }`}
+                        }`}
                     />
                   </div>
 
