@@ -5,7 +5,6 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Dumbbell, Eye, EyeOff, ArrowRight, Loader2, AlertCircle } from "lucide-react"
-import { supabase } from "@/lib/supabase"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -36,10 +35,22 @@ export default function LoginPage() {
     setError("")
     
     // Simulating login to bypass Supabase email limits for now
-    setTimeout(() => {
+    setTimeout(async () => {
+      // Log user in to Database so they update their lastLogin in Supabase users table
+      try {
+        await fetch('http://localhost:8080/api/users/login-or-register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email })
+        });
+      } catch (e) {
+        console.error("Failed to sync login with DB", e);
+      }
+
       // Mock session for UI development
       localStorage.setItem("isLoggedIn", "true")
       localStorage.setItem("userName", "Manikanta")
+      localStorage.setItem("userEmail", formData.email)
       
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", formData.email)

@@ -5,7 +5,6 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Dumbbell, Menu, X, LogOut, User } from "lucide-react"
-import { supabase } from "@/lib/supabase"
 
 const navLinks = [
   { label: "Home", href: "/" },

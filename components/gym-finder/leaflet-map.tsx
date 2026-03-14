@@ -5,7 +5,6 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl, LayerGro
 import { Search, MapPin, Navigation, Star, Dumbbell, ChevronRight, PlusCircle, Users } from "lucide-react"
 import { GymCommunityView } from "./gym-community-view"
 import { AddGymModal } from "./add-gym-modal"
-import { supabase } from "@/lib/supabase"
 import "leaflet/dist/leaflet.css"
 import L from "leaflet"
 
@@ -98,23 +97,25 @@ export default function LeafletMap() {
     const fetchGyms = async () => {
         setIsSyncing(true)
         try {
-            const { data, error } = await supabase.from('gyms').select('*')
-            if (error) throw error
+            const response = await fetch('http://localhost:8080/api/gyms')
+            if (!response.ok) throw new Error('Failed to fetch gyms')
+            const data = await response.json()
+            
             if (data && data.length > 0) {
-                setGyms(data.map(g => ({
+                setGyms(data.map((g: any) => ({
                     id: g.id,
                     name: g.name,
                     lat: g.lat,
                     lng: g.lng,
                     rating: g.rating,
                     address: g.address,
-                    openNow: g.open_now,
+                    openNow: g.openNow, // Updated from open_now
                     trainer: g.trainer,
                     members: []
                 })))
             }
         } catch (error) {
-            console.error('Error fetching gyms:', error)
+            console.error('Error fetching gyms from Spring Boot:', error)
         } finally {
             setIsSyncing(false)
         }
@@ -126,8 +127,41 @@ export default function LeafletMap() {
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!searchQuery) return
+        if (!searchQuery) {
+            fetchGyms()
+            return
+        }
         setSearching(true)
+        try {
+            // First check if it matches any gyms in our DB
+            const dbRes = await fetch(`http://localhost:8080/api/gyms?search=${encodeURIComponent(searchQuery)}`)
+            if (dbRes.ok) {
+                const data = await dbRes.json()
+                if (data && data.length > 0) {
+                    const mappedGyms = data.map((g: any) => ({
+                        id: g.id,
+                        name: g.name,
+                        lat: g.lat,
+                        lng: g.lng,
+                        rating: g.rating,
+                        address: g.address,
+                        openNow: g.openNow,
+                        trainer: g.trainer,
+                        members: []
+                    }))
+                    setGyms(mappedGyms)
+                    setCenter([mappedGyms[0].lat, mappedGyms[0].lng])
+                    setSearchRadius({ lat: mappedGyms[0].lat, lng: mappedGyms[0].lng })
+                    setTimeout(() => setSearchRadius(null), 10000)
+                    setSearching(false)
+                    return
+                }
+            }
+        } catch (error) {
+            console.error("DB search error", error)
+        }
+
+        // If no gyms found, fallback to map geocoding area check
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`)
             const data = await res.json()
@@ -164,7 +198,13 @@ export default function LeafletMap() {
                             type="text"
                             placeholder="Search area..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value)
+                                if (e.target.value === "") {
+                                    fetchGyms()
+                                    setSearchRadius(null)
+                                }
+                            }}
                             className="w-full rounded-sm border border-border/50 bg-background/90 px-12 py-3 text-xs backdrop-blur-md transition-all focus:border-primary/50 focus:outline-none shadow-lg"
                         />
                     </form>

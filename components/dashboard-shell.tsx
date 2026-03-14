@@ -17,7 +17,6 @@ import {
   ChevronRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { supabase } from "@/lib/supabase"
 
 const sidebarLinks = [
   { icon: MapPin, label: "Gym Finder", href: "/gyms" },

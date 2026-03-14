@@ -5,7 +5,6 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Dumbbell, Eye, EyeOff, ArrowRight, Loader2, Check, AlertCircle, MapPin, Search, Plus, User, Shield, Navigation } from "lucide-react"
-import { supabase } from "@/lib/supabase"
 
 const fitnessGoals = ["Bulking", "Cutting", "Strength", "Cardio"]
 const experienceLevels = ["Beginner", "Intermediate", "Advanced"]
@@ -30,10 +29,14 @@ export default function RegisterPage() {
   
   const [formData, setFormData] = useState({
     name: "",
+    username: "",
+    age: "",
     email: "",
     password: "",
     fitnessGoal: "",
     experience: "",
+    bio: "",
+    timing: "",
     hasGym: null as boolean | null,
     gymId: "",
     gymName: "",
@@ -44,7 +47,7 @@ export default function RegisterPage() {
     isNewGym: false
   })
 
-  // Search gyms from Supabase
+  // Search gyms from Spring Boot
   useEffect(() => {
     const searchGyms = async () => {
       if (gymSearch.length < 2) {
@@ -53,17 +56,12 @@ export default function RegisterPage() {
       }
       setSearching(true)
       try {
-        const { data, error } = await supabase
-          .from('gyms')
-          .select('*')
-          .ilike('name', `%${gymSearch}%`)
-          .limit(5)
-        
-        if (!error && data) {
-          setSearchResults(data)
-        }
+        const response = await fetch(`http://localhost:8080/api/gyms?search=${encodeURIComponent(gymSearch)}`)
+        if (!response.ok) throw new Error('Search failed')
+        const data = await response.json()
+        setSearchResults(data)
       } catch (err) {
-        console.error("Search failed", err)
+        console.error("Search failed via Spring Boot", err)
       } finally {
         setSearching(false)
       }
@@ -104,29 +102,61 @@ export default function RegisterPage() {
     try {
       let finalGymId = formData.gymId
 
-      // If it's a new gym, add it to the database first
+      // If it's a new gym, add it via Spring Boot
       if (formData.isNewGym && formData.gymName && formData.gymLat && formData.gymLng) {
-        const { data: newGym, error: gymError } = await supabase
-          .from('gyms')
-          .insert([{
+        const response = await fetch('http://localhost:8080/api/gyms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             name: formData.gymName,
             address: formData.gymAddress,
             lat: parseFloat(formData.gymLat),
             lng: parseFloat(formData.gymLng),
             trainer: formData.role === 'trainer' ? formData.name : null,
             rating: 5.0,
-            open_now: true
-          }])
-          .select()
-          .single()
-
-        if (gymError) throw gymError
+            openNow: true // Update from open_now
+          })
+        })
+        
+        if (!response.ok) throw new Error('Failed to create gym')
+        const newGym = await response.json()
         finalGymId = newGym.id
+      }
+
+      // Log user in to Database so they appear in Supabase users table
+      await fetch('http://localhost:8080/api/users/login-or-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          username: formData.username,
+          age: formData.age ? parseInt(formData.age, 10) : null,
+          email: formData.email,
+          role: formData.role,
+          fitnessGoal: formData.fitnessGoal,
+          experience: formData.experience,
+          bio: formData.bio,
+          timing: formData.timing
+        })
+      })
+
+      // Add user to the selected gym community
+      if (finalGymId) {
+        await fetch(`http://localhost:8080/api/gyms/${finalGymId}/members`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            role: formData.role,
+            avatarUrl: null
+          })
+        })
       }
 
       // Simulate signup success
       localStorage.setItem("isLoggedIn", "true")
       localStorage.setItem("userName", formData.name)
+      localStorage.setItem("userEmail", formData.email)
       localStorage.setItem("userRole", formData.role)
       localStorage.setItem("userGymId", finalGymId)
       
@@ -219,6 +249,38 @@ export default function RegisterPage() {
                 />
               </div>
 
+              {/* Username & Age */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="rounded-sm border border-border bg-input px-4 py-3.5 text-sm text-foreground outline-none transition-all duration-300 placeholder:text-gym-text-dim focus:border-primary focus:shadow-[0_0_20px_oklch(0.65_0.25_25/0.15)]"
+                    placeholder="@marcus_lifts"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                    Age
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    required
+                    value={formData.age}
+                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                    className="rounded-sm border border-border bg-input px-4 py-3.5 text-sm text-foreground outline-none transition-all duration-300 placeholder:text-gym-text-dim focus:border-primary focus:shadow-[0_0_20px_oklch(0.65_0.25_25/0.15)]"
+                    placeholder="28"
+                  />
+                </div>
+              </div>
+
               {/* Email */}
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
@@ -307,6 +369,34 @@ export default function RegisterPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Timing */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                  Timing Preference
+                </label>
+                <input
+                  type="text"
+                  value={formData.timing}
+                  onChange={(e) => setFormData({ ...formData, timing: e.target.value })}
+                  className="rounded-sm border border-border bg-input px-4 py-3.5 text-sm text-foreground outline-none transition-all duration-300 placeholder:text-gym-text-dim focus:border-primary focus:shadow-[0_0_20px_oklch(0.65_0.25_25/0.15)]"
+                  placeholder="Morning 5-7 AM"
+                />
+              </div>
+
+              {/* Bio */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                  Bio / About
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  className="resize-none rounded-sm border border-border bg-input px-4 py-3.5 text-sm text-foreground outline-none transition-all duration-300 placeholder:text-gym-text-dim focus:border-primary focus:shadow-[0_0_20px_oklch(0.65_0.25_25/0.15)]"
+                  placeholder="Tell us a bit about yourself..."
+                />
+              </div>
             </>
           )}
 
@@ -380,49 +470,75 @@ export default function RegisterPage() {
                 <div className="flex flex-col gap-4 p-4 rounded-sm border border-primary/20 bg-primary/5 animate-in fade-in duration-300">
                   {!formData.isNewGym ? (
                     <div className="space-y-4">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <input
-                          type="text"
-                          value={gymSearch}
-                          onChange={(e) => setGymSearch(e.target.value)}
-                          placeholder="Search your gym by name..."
-                          className="w-full rounded-sm border border-border bg-input py-3 pl-10 pr-4 text-sm outline-none focus:border-primary"
-                        />
-                      </div>
-
-                      {searching && <div className="text-center py-2"><Loader2 className="h-4 w-4 animate-spin inline mr-2" /><span className="text-xs">Searching...</span></div>}
-
-                      {searchResults.length > 0 && (
-                        <div className="flex flex-col gap-2">
-                          {searchResults.map((gym) => (
-                            <button
-                              key={gym.id}
-                              type="button"
-                              onClick={() => {
-                                setFormData({ ...formData, gymId: gym.id, gymName: gym.name });
-                                setGymSearch(gym.name);
-                                setSearchResults([]);
-                              }}
-                              className={`flex flex-col p-3 text-left rounded-sm border transition-all ${
-                                formData.gymId === gym.id ? "border-primary bg-primary/20" : "bg-card hover:border-primary/50"
-                              }`}
-                            >
-                              <span className="text-sm font-bold text-foreground">{gym.name}</span>
-                              <span className="text-xs text-muted-foreground">{gym.address}</span>
-                            </button>
-                          ))}
+                      {formData.gymId && formData.gymName ? (
+                        <div className="flex items-center justify-between rounded-sm border border-primary bg-primary/10 p-4 animate-in fade-in zoom-in-95 duration-200">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary/20">
+                              <MapPin className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-foreground">{formData.gymName}</span>
+                              <span className="text-xs text-primary flex items-center gap-1 mt-1">
+                                <Check className="h-3 w-3" /> Selected Gym
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, gymId: "", gymName: "" });
+                              setGymSearch("");
+                            }}
+                            className="text-xs font-bold uppercase text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            Remove
+                          </button>
                         </div>
-                      )}
+                      ) : (
+                        <>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <input
+                              type="text"
+                              value={gymSearch}
+                              onChange={(e) => setGymSearch(e.target.value)}
+                              placeholder="Search your gym by name..."
+                              className="w-full rounded-sm border border-border bg-input py-3 pl-10 pr-4 text-sm outline-none focus:border-primary"
+                            />
+                          </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, isNewGym: true, gymId: "", gymName: "" })}
-                        className="flex items-center gap-2 text-xs font-bold text-primary hover:underline"
-                      >
-                        <Plus className="h-3 w-3" />
-                        CAN'T FIND IT? ADD AS NEW GYM
-                      </button>
+                          {searching && <div className="text-center py-2"><Loader2 className="h-4 w-4 animate-spin inline mr-2" /><span className="text-xs">Searching...</span></div>}
+
+                          {searchResults.length > 0 && (
+                            <div className="flex flex-col gap-2">
+                              {searchResults.map((gym) => (
+                                <button
+                                  key={gym.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData({ ...formData, gymId: gym.id, gymName: gym.name });
+                                    setGymSearch(gym.name);
+                                    setSearchResults([]);
+                                  }}
+                                  className="flex flex-col p-3 text-left rounded-sm border bg-card hover:border-primary/50 transition-all text-sm"
+                                >
+                                  <span className="font-bold text-foreground">{gym.name}</span>
+                                  <span className="text-xs text-muted-foreground">{gym.address}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, isNewGym: true, gymId: "", gymName: "" })}
+                            className="flex items-center gap-2 text-xs font-bold text-primary hover:underline"
+                          >
+                            <Plus className="h-3 w-3" />
+                            CAN'T FIND IT? ADD AS NEW GYM
+                          </button>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-4">

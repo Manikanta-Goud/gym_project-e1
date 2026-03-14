@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   User,
   Camera,
@@ -38,6 +38,46 @@ const achievements = [
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
+  const [userData, setUserData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Set fallback name from localStorage if available
+    const storedName = localStorage.getItem("userName")
+    const storedGymId = localStorage.getItem("userGymId")
+    if (storedName) {
+      setUserData(prev => ({ ...prev, name: storedName }))
+    }
+
+    const fetchUser = async () => {
+      const email = localStorage.getItem("userEmail")
+      if (email) {
+        try {
+          const res = await fetch(`http://localhost:8080/api/users/email/${email}`)
+          if (res.ok) {
+            const data = await res.json()
+            setUserData(prev => ({ ...prev, ...data }))
+          }
+        } catch (e) {
+          console.error("Failed to fetch user data:", e)
+        }
+      }
+      setLoading(false)
+    }
+
+    fetchUser()
+  }, [])
+
+  const displayData = {
+    name: userData?.name || "Marcus Johnson",
+    username: userData?.username || (userData?.name ? userData.name.toLowerCase().replace(/\s+/g, '_') : "marcus_lifts"),
+    goal: userData?.fitnessGoal || "Powerlifting",
+    experience: userData?.experience || "Advanced",
+    gym: userData?.gym?.name || "Iron Paradise Gym",
+    bio: userData?.bio || "Competitive powerlifter chasing the 1500 total. 5 years of training experience. Looking for a dedicated training partner who takes the sport seriously. I train at Iron Paradise Gym, mornings before work. Let us push some heavy weight together.",
+    age: userData?.age?.toString() || "28",
+    timing: userData?.timing || "Morning (5-7 AM)",
+  }
 
   return (
     <DashboardShell activeTab="Profile">
@@ -69,21 +109,21 @@ export default function ProfilePage() {
               <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div>
                   <h2 className="font-[var(--font-oswald)] text-3xl font-bold uppercase text-foreground">
-                    Marcus Johnson
+                    {displayData.name}
                   </h2>
-                  <p className="mt-1 text-sm text-muted-foreground">@marcus_lifts</p>
+                  <p className="mt-1 text-sm text-muted-foreground">@{displayData.username}</p>
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <span className="flex items-center gap-1.5 rounded-sm bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                       <Target className="h-3 w-3" />
-                      Powerlifting
+                      {displayData.goal}
                     </span>
                     <span className="flex items-center gap-1.5 rounded-sm bg-secondary px-3 py-1 text-xs font-semibold text-foreground">
                       <Award className="h-3 w-3" />
-                      Advanced
+                      {displayData.experience}
                     </span>
                     <span className="flex items-center gap-1.5 rounded-sm bg-secondary px-3 py-1 text-xs font-semibold text-muted-foreground">
                       <MapPin className="h-3 w-3" />
-                      Iron Paradise Gym
+                      {displayData.gym}
                     </span>
                   </div>
                 </div>
@@ -122,9 +162,7 @@ export default function ProfilePage() {
                   About
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-foreground">
-                  Competitive powerlifter chasing the 1500 total. 5 years of training experience.
-                  Looking for a dedicated training partner who takes the sport seriously.
-                  I train at Iron Paradise Gym, mornings before work. Let us push some heavy weight together.
+                  {displayData.bio}
                 </p>
               </div>
 
@@ -163,10 +201,10 @@ export default function ProfilePage() {
               {/* Stats */}
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 {[
-                  { label: "Total Sessions", value: "247", icon: Flame },
-                  { label: "Partners", value: "12", icon: User },
-                  { label: "Current Streak", value: "12d", icon: TrendingUp },
-                  { label: "PRs Set", value: "31", icon: Award },
+                  { label: "Total Sessions", value: "12", icon: Flame },
+                  { label: "Partners", value: "12d", icon: User },
+                  { label: "Current Streak", value: "31", icon: TrendingUp },
+                  { label: "PRs Set", value: "Details", icon: Award },
                 ].map((stat) => (
                   <div
                     key={stat.label}
@@ -193,11 +231,11 @@ export default function ProfilePage() {
                 </h3>
                 <div className="mt-4 flex flex-col gap-4">
                   {[
-                    { label: "Age", value: "28" },
-                    { label: "Goal", value: "Powerlifting" },
-                    { label: "Experience", value: "5 Years" },
-                    { label: "Timing", value: "Morning (5-7 AM)" },
-                    { label: "Home Gym", value: "Iron Paradise" },
+                    { label: "Age", value: displayData.age },
+                    { label: "Goal", value: displayData.goal },
+                    { label: "Experience", value: displayData.experience },
+                    { label: "Timing", value: displayData.timing },
+                    { label: "Home Gym", value: displayData.gym },
                   ].map((item) => (
                     <div key={item.label} className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">{item.label}</span>

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { GymMap } from "@/components/gym-finder/gym-map"
 import { DashboardShell } from "@/components/dashboard-shell"
-import { supabase } from "@/lib/supabase"
 
 export default function GymsPage() {
     const router = useRouter()

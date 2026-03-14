@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { X, Users, Dumbbell, Clock, Target, ShieldCheck, MapPin, Loader2 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
 import { JoinCommunityModal } from "./join-community-modal"
 
 interface Member {
@@ -40,16 +39,12 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
     const fetchMembers = async () => {
         setLoading(true)
         try {
-            const { data, error } = await supabase
-                .from('gym_members')
-                .select('*')
-                .eq('gym_id', gym.id)
-                .order('created_at', { ascending: false })
-            
-            if (error) throw error
-            if (data) setMembers(data)
+            const response = await fetch(`http://localhost:8080/api/gyms/${gym.id}/members`)
+            if (!response.ok) throw new Error('Failed to fetch members')
+            const data = await response.json()
+            setMembers(data)
         } catch (error) {
-            console.error('Error fetching members:', error)
+            console.error('Error fetching members from Spring Boot:', error)
         } finally {
             setLoading(false)
         }
@@ -61,22 +56,26 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
 
     const handleJoin = async (newMember: Omit<Member, 'id'>) => {
         try {
-            const { error } = await supabase
-                .from('gym_members')
-                .insert([{
-                    gym_id: gym.id,
+            const response = await fetch(`http://localhost:8080/api/gyms/${gym.id}/members`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
                     name: newMember.name,
                     goal: newMember.goal,
                     timing: newMember.timing,
                     specific_time: newMember.specific_time,
                     details: newMember.details
-                }])
+                }),
+            })
             
-            if (error) throw error
+            if (!response.ok) throw new Error('Failed to join community')
+            
             setShowJoinModal(false)
             fetchMembers()
         } catch (error) {
-            console.error('Error joining community:', error)
+            console.error('Error joining community via Spring Boot:', error)
             alert('Failed to join. Please try again.')
         }
     }

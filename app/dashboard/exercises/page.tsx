@@ -15,7 +15,6 @@ import {
   Dumbbell,
   Loader2,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
 import { DashboardShell } from "@/components/dashboard-shell"
 import { ExerciseVideo } from "@/components/exercise-video"
 import { cn } from "@/lib/utils"
@@ -54,24 +53,25 @@ export default function ExercisesPage() {
   const [dbExercises, setDbExercises] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Fetch from Supabase
+  // Fetch from Spring Boot API
   useEffect(() => {
     async function fetchExercises() {
-      const { data, error } = await supabase
-        .from('exercises')
-        .select('*')
-        .order('name', { ascending: true })
-      
-      if (!error && data) {
+      try {
+        const response = await fetch('http://localhost:8080/api/exercises')
+        if (!response.ok) throw new Error('Failed to fetch exercises')
+        const data = await response.json()
         setDbExercises(data)
+      } catch (error) {
+        console.error('Error fetching from Spring Boot:', error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     fetchExercises()
   }, [])
 
   const filtered = dbExercises.filter((e) => {
-    const matchesGroup = selectedGroup === "All" || e.muscle_group === selectedGroup
+    const matchesGroup = selectedGroup === "All" || e.muscleGroup === selectedGroup
     const normalize = (val: string) => val.toLowerCase().replace(/[^a-z0-9]/g, '')
     const matchesSearch = normalize(e.name).includes(normalize(searchQuery))
     return matchesGroup && matchesSearch
@@ -79,9 +79,9 @@ export default function ExercisesPage() {
 
   // Helper to get video path
   const getVideoPath = (exercise: any) => {
-    if (exercise.video_path) {
-      // Ensure there's no leading slash when passing to IKVideo
-      return exercise.video_path.replace(/^\/+/, '')
+    if (exercise.videoPath) {
+      // Ensure there's no leading slash
+      return exercise.videoPath.replace(/^\/+/, '')
     }
     return exercise.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '.mp4'
   }
@@ -191,17 +191,17 @@ export default function ExercisesPage() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary/10">
                         <Dumbbell className="h-5 w-5 text-primary" />
                       </div>
-                      <span
+                        <span
                         className={cn(
                           "rounded-sm px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                          exercise.difficulty_level === "Beginner"
+                          exercise.difficultyLevel === "Beginner"
                             ? "bg-green-500/10 text-green-400"
-                            : exercise.difficulty_level === "Intermediate"
+                            : exercise.difficultyLevel === "Intermediate"
                             ? "bg-yellow-500/10 text-yellow-400"
                             : "bg-primary/10 text-primary"
                         )}
                       >
-                        {exercise.difficulty_level}
+                        {exercise.difficultyLevel}
                       </span>
                     </div>
 
@@ -211,15 +211,15 @@ export default function ExercisesPage() {
 
                     <div className="mt-2 flex items-center gap-2">
                       <span className="rounded-sm bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
-                        {exercise.muscle_group}
+                        {exercise.muscleGroup}
                       </span>
-                      {exercise.secondary_muscles && (
-                        <span className="text-xs text-muted-foreground">{exercise.secondary_muscles}</span>
+                      {exercise.secondaryMuscles && (
+                        <span className="text-xs text-muted-foreground">{exercise.secondaryMuscles}</span>
                       )}
                     </div>
 
                     <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                      {exercise.pro_tip || "Master the form with our visual guide."}
+                      {exercise.proTip || "Master the form with our visual guide."}
                     </p>
 
                     {/* Hover accent */}
@@ -323,10 +323,10 @@ export default function ExercisesPage() {
                 </h3>
                 <div className="mt-1 flex items-center gap-2">
                   <span className="rounded-sm bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                    {selectedExercise.muscle_group}
+                    {selectedExercise.muscleGroup}
                   </span>
-                  {selectedExercise.secondary_muscles && (
-                    <span className="text-xs text-muted-foreground">{selectedExercise.secondary_muscles}</span>
+                  {selectedExercise.secondaryMuscles && (
+                    <span className="text-xs text-muted-foreground">{selectedExercise.secondaryMuscles}</span>
                   )}
                 </div>
               </div>
@@ -359,14 +359,14 @@ export default function ExercisesPage() {
             </div>
 
             {/* Common Mistakes */}
-            {selectedExercise.common_mistakes && selectedExercise.common_mistakes.length > 0 && (
+            {selectedExercise.commonMistakes && selectedExercise.commonMistakes.length > 0 && (
               <div className="mt-8">
                 <h4 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-foreground">
                   <AlertTriangle className="h-4 w-4 text-yellow-400" />
                   Common Mistakes
                 </h4>
                 <div className="mt-4 flex flex-col gap-2">
-                  {selectedExercise.common_mistakes.map((mistake: string, i: number) => (
+                  {selectedExercise.commonMistakes.map((mistake: string, i: number) => (
                     <div key={i} className="flex items-center gap-2 rounded-sm border border-yellow-500/10 bg-yellow-500/5 px-4 py-2.5">
                       <X className="h-3 w-3 shrink-0 text-yellow-400" />
                       <p className="text-sm text-muted-foreground">{mistake}</p>
@@ -383,7 +383,7 @@ export default function ExercisesPage() {
                 Pro Tip
               </h4>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {selectedExercise.pro_tip || "Consistency is key. Focus on quality over quantity."}
+                {selectedExercise.proTip || "Consistency is key. Focus on quality over quantity."}
               </p>
             </div>
           </div>
