@@ -38,22 +38,18 @@ export default function LoginPage() {
     setTimeout(async () => {
       // Log user in to Database so they update their lastLogin in Supabase users table
       try {
-        const res = await fetch('http://localhost:8080/api/users/login-or-register', {
+        await fetch('http://localhost:8080/api/users/login-or-register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: formData.email })
         });
-        if (res.ok) {
-           const user = await res.json();
-           localStorage.setItem("userId", user.id);
-           localStorage.setItem("userName", user.name || "Manikanta");
-        }
       } catch (e) {
         console.error("Failed to sync login with DB", e);
       }
 
       // Mock session for UI development
       localStorage.setItem("isLoggedIn", "true")
+      localStorage.setItem("userName", "Manikanta")
       localStorage.setItem("userEmail", formData.email)
       
       if (rememberMe) {

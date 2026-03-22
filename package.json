@@ -1,0 +1,24 @@
+{
+  "name": "gym_spring_boot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Manikanta-Goud/gym_project-e1.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Manikanta-Goud/gym_project-e1/issues"
+  },
+  "homepage": "https://github.com/Manikanta-Goud/gym_project-e1#readme",
+  "dependencies": {
+    "puppeteer": "^24.39.1"
+  }
+}

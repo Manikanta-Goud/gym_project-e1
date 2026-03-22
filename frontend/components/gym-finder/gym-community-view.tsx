@@ -134,6 +134,19 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
 
                     {/* Right Side: Community Members */}
                     <div className="flex-1 flex flex-col overflow-hidden">
+                        <style jsx>{`
+                            .custom-scroll::-webkit-scrollbar {
+                                width: 6px;
+                                display: block !important;
+                            }
+                            .custom-scroll::-webkit-scrollbar-track {
+                                background: rgba(255, 255, 255, 0.05);
+                            }
+                            .custom-scroll::-webkit-scrollbar-thumb {
+                                background: oklch(0.65 0.25 25);
+                                border-radius: 10px;
+                            }
+                        `}</style>
                         <div className="p-8 border-b border-border/50">
                             <h3 className="flex items-center gap-2 text-xl font-bold uppercase tracking-widest text-foreground">
                                 <Users className="h-5 w-5 text-primary" />
@@ -142,7 +155,7 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
                             <p className="text-sm text-muted-foreground mt-1">People currently training or registered at this location.</p>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
+                        <div className="flex-1 overflow-y-scroll custom-scroll p-6 space-y-4">
                             {loading ? (
                                 <div className="flex h-full items-center justify-center py-20">
                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -294,10 +307,13 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
                                 </div>
 
                                 <button 
-                                    onClick={() => window.open(`/dashboard/profile?id=${viewingUser.id}`, '_blank')}
-                                    className="w-full mt-4 bg-secondary/50 py-3 text-[10px] font-bold uppercase tracking-widest text-foreground hover:bg-secondary transition-all border border-border/50"
+                                    onClick={() => {
+                                        setViewingUser(null);
+                                        window.location.href = `/dashboard/profile?id=${viewingUser.id}`;
+                                    }}
+                                    className="w-full mt-4 bg-primary py-3 text-[10px] font-bold uppercase tracking-widest text-primary-foreground hover:bg-primary/90 transition-all border border-primary/20"
                                 >
-                                    Open Full Performance Profile ↗
+                                    Open Full Performance Profile
                                 </button>
                             </div>
                         </div>

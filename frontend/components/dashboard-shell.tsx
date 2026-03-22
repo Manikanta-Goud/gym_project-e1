@@ -15,11 +15,13 @@ import {
   X,
   Search,
   ChevronRight,
+  Navigation,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const sidebarLinks = [
   { icon: MapPin, label: "Gym Finder", href: "/gyms" },
+  { icon: Navigation, label: "Travel Mode", href: "/dashboard/travel-mode" },
   { icon: MapPin, label: "Dashboard", href: "/dashboard" },
   { icon: BookOpen, label: "Exercises", href: "/dashboard/exercises" },
   { icon: MessageCircle, label: "Messages", href: "/dashboard/chat", badge: 3 },

@@ -64,19 +64,8 @@ const initialGyms: Gym[] = [
 function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
     const map = useMap()
     useEffect(() => {
-        if (center && map) {
-            // Use flyTo for smoother transition and to ensure view is updated safely
-            // Wrapping in requestAnimationFrame ensures the map container is ready
-            requestAnimationFrame(() => {
-                try {
-                    map.flyTo(center, map.getZoom() || zoom, {
-                        animate: true,
-                        duration: 1.5
-                    });
-                } catch (e) {
-                    console.warn("Map view update deferred", e);
-                }
-            });
+        if (center) {
+            map.setView(center, zoom)
         }
     }, [map, center, zoom])
     return null
@@ -92,8 +81,6 @@ export default function LeafletMap() {
     const [isCommunityOpen, setIsCommunityOpen] = useState(false)
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [searchRadius, setSearchRadius] = useState<{ lat: number; lng: number } | null>(null)
-    const [searchMarker, setSearchMarker] = useState<{ lat: number; lng: number, name: string } | null>(null)
-    const [markerRefs, setMarkerRefs] = useState<{ [key: string]: L.Marker }>({})
 
     // Distance calculation helper (KM)
     const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -138,17 +125,6 @@ export default function LeafletMap() {
         fetchGyms()
     }, [])
 
-    // Automatically open popup when a gym is selected (e.g. via search)
-    useEffect(() => {
-        if (selectedGym && markerRefs[selectedGym.id]) {
-            // Small delay to ensure map has finished flying/moving
-            const timer = setTimeout(() => {
-                markerRefs[selectedGym.id].openPopup();
-            }, 1600); // Slightly longer than flyTo duration (1.5s)
-            return () => clearTimeout(timer);
-        }
-    }, [selectedGym, markerRefs])
-
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!searchQuery) {
@@ -174,12 +150,8 @@ export default function LeafletMap() {
                         members: []
                     }))
                     setGyms(mappedGyms)
-                    const firstGym = mappedGyms[0]
-                    const newPos: [number, number] = [firstGym.lat, firstGym.lng]
-                    setCenter(newPos)
-                    setSearchMarker(null) // Clear generic marker to prioritize real gym marker
-                    setSelectedGym(firstGym)
-                    setSearchRadius({ lat: firstGym.lat, lng: firstGym.lng })
+                    setCenter([mappedGyms[0].lat, mappedGyms[0].lng])
+                    setSearchRadius({ lat: mappedGyms[0].lat, lng: mappedGyms[0].lng })
                     setTimeout(() => setSearchRadius(null), 10000)
                     setSearching(false)
                     return
@@ -190,16 +162,13 @@ export default function LeafletMap() {
         }
 
         // If no gyms found, fallback to map geocoding area check
-        // We bias the search to Hyderabad/current region to avoid "San Francisco" defaults
         try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&viewbox=78.2,17.2,78.7,17.6&bounded=0`)
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`)
             const data = await res.json()
             if (data && data.length > 0) {
                 const newLat = parseFloat(data[0].lat);
                 const newLng = parseFloat(data[0].lon);
-                const newPos: [number, number] = [newLat, newLng]
-                setCenter(newPos)
-                setSearchMarker({ lat: newLat, lng: newLng, name: data[0].display_name })
+                setCenter([newLat, newLng])
                 setSearchRadius({ lat: newLat, lng: newLng })
                 setTimeout(() => setSearchRadius(null), 10000)
             }
@@ -234,8 +203,6 @@ export default function LeafletMap() {
                                 if (e.target.value === "") {
                                     fetchGyms()
                                     setSearchRadius(null)
-                                    setSearchMarker(null)
-                                    setSelectedGym(null)
                                 }
                             }}
                             className="w-full rounded-sm border border-border/50 bg-background/90 px-12 py-3 text-xs backdrop-blur-md transition-all focus:border-primary/50 focus:outline-none shadow-lg"
@@ -260,6 +227,7 @@ export default function LeafletMap() {
 
             <div className="flex-1 relative overflow-hidden">
                 <MapContainer 
+                    key="gym-finder-map"
                     center={center} 
                     zoom={13} 
                     style={{ height: "100%", width: "100%" }} 
@@ -291,17 +259,6 @@ export default function LeafletMap() {
                         />
                     )}
 
-                    {searchMarker && (
-                        <Marker position={[searchMarker.lat, searchMarker.lng]} icon={highlightedIcon}>
-                            <Popup>
-                                <div className="p-1">
-                                    <h3 className="font-bold text-sm text-black m-0">Searched Location</h3>
-                                    <p className="text-[10px] text-slate-500 mt-1">{searchMarker.name}</p>
-                                </div>
-                            </Popup>
-                        </Marker>
-                    )}
-
                     {gyms.map((gym) => {
                         const inSearchZone = searchRadius && getDistance(searchRadius.lat, searchRadius.lng, gym.lat, gym.lng) < 4;
                         return (
@@ -309,11 +266,6 @@ export default function LeafletMap() {
                                 key={gym.id}
                                 position={[gym.lat, gym.lng]}
                                 icon={inSearchZone ? highlightedIcon : defaultIcon}
-                                ref={(ref) => {
-                                    if (ref && !markerRefs[gym.id]) {
-                                        setMarkerRefs(prev => ({ ...prev, [gym.id]: ref }));
-                                    }
-                                }}
                                 eventHandlers={{ click: () => setSelectedGym(gym) }}
                             >
                                 <Popup>
