@@ -24,4 +24,9 @@ public class ExerciseController {
     public Exercise getExerciseById(@PathVariable UUID id) {
         return exerciseService.getExerciseById(id);
     }
+
+    @PostMapping
+    public Exercise createExercise(@RequestBody Exercise exercise) {
+        return exerciseService.saveExercise(exercise);
+    }
 }

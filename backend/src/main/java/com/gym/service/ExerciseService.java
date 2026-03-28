@@ -20,4 +20,8 @@ public class ExerciseService {
     public Exercise getExerciseById(UUID id) {
         return exerciseRepository.findById(id).orElse(null);
     }
+
+    public Exercise saveExercise(Exercise exercise) {
+        return exerciseRepository.save(exercise);
+    }
 }
