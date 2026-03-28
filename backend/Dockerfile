@@ -1,5 +1,5 @@
-# Use official Maven/Java 17 image for the build stage
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+# Use official Maven/Java 21 image for the build stage
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
 # Copy the pom.xml and source code
@@ -9,8 +9,8 @@ COPY src ./src
 # Build the application
 RUN mvn clean package -DskipTests
 
-# Use specialized Java 17 runtime for the production stage
-FROM eclipse-temurin:17-jre
+# Use specialized Java 21 runtime for the production stage
+FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 # Copy the built jar file
