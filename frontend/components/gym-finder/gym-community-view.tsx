@@ -44,7 +44,7 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
     const fetchMembers = async () => {
         setLoading(true)
         try {
-            const response = await fetch(`http://${window.location.hostname}:8080/api/gyms/${gym.id}/members`)
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/gyms/${gym.id}/members`)
             if (!response.ok) throw new Error('Failed to fetch members')
             const data = await response.json()
             setMembers(data)
@@ -61,7 +61,7 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
 
     const handleJoin = async (newMember: Omit<Member, 'id'>) => {
         try {
-            const response = await fetch(`http://${window.location.hostname}:8080/api/gyms/${gym.id}/members`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/gyms/${gym.id}/members`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -178,7 +178,7 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
                                             setLoadingUser(true)
                                             setShowComingSoon(false)
                                             try {
-                                                const res = await fetch(`http://${window.location.hostname}:8080/api/users/${member.userId}`)
+                                                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/users/${member.userId}`)
                                                 if (res.ok) {
                                                     const data = await res.json()
                                                     setViewingUser(data)
