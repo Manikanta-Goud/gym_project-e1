@@ -39,6 +39,7 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
     const [showJoinModal, setShowJoinModal] = useState(false)
     const [viewingUser, setViewingUser] = useState<any>(null)
     const [loadingUser, setLoadingUser] = useState(false)
+    const [showComingSoon, setShowComingSoon] = useState(false)
 
     const fetchMembers = async () => {
         setLoading(true)
@@ -101,32 +102,34 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
 
                 <div className="flex flex-col md:flex-row h-full">
                     {/* Left Side: Gym Info */}
-                    <div className="w-full md:w-1/3 border-r border-border/50 bg-secondary/20 p-8">
-                        <div className="flex flex-col gap-6">
-                            <div className="h-16 w-16 rounded-sm bg-primary flex items-center justify-center">
-                                <Dumbbell className="h-8 w-8 text-primary-foreground" />
-                            </div>
+                    <div className="w-full md:w-1/3 shrink-0 border-b md:border-b-0 md:border-r border-border/50 bg-secondary/20 p-4 md:p-8">
+                        <div className="flex flex-col gap-4 md:gap-6">
+                            <div className="flex flex-row md:flex-col items-center md:items-start gap-4 md:gap-6">
+                                <div className="h-12 w-12 md:h-16 md:w-16 shrink-0 rounded-sm bg-primary flex items-center justify-center">
+                                    <Dumbbell className="h-6 w-6 md:h-8 md:w-8 text-primary-foreground" />
+                                </div>
 
-                            <div>
-                                <h2 className="font-[var(--font-oswald)] text-3xl font-bold uppercase tracking-tight text-foreground">{gym.name}</h2>
-                                <div className="mt-2 flex items-center gap-2 text-muted-foreground">
-                                    <MapPin className="h-4 w-4" />
-                                    <p className="text-sm font-medium">{gym.address}</p>
+                                <div>
+                                    <h2 className="font-[var(--font-oswald)] text-xl md:text-3xl font-bold uppercase tracking-tight text-foreground">{gym.name}</h2>
+                                    <div className="mt-1 md:mt-2 flex items-start md:items-center gap-2 text-muted-foreground">
+                                        <MapPin className="h-3 w-3 md:h-4 md:w-4 mt-0.5 md:mt-0 shrink-0" />
+                                        <p className="text-xs md:text-sm font-medium line-clamp-2 md:line-clamp-none">{gym.address}</p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-4 pt-4">
-                                <div className="rounded-sm border border-primary/20 bg-primary/5 p-4">
+                            <div className="space-y-2 md:space-y-4 pt-1 md:pt-4">
+                                <div className="rounded-sm border border-primary/20 bg-primary/5 p-3 md:p-4">
                                     <div className="flex items-center gap-2 text-primary">
-                                        <ShieldCheck className="h-4 w-4" />
-                                        <span className="text-xs font-bold uppercase tracking-widest">Head Trainer</span>
+                                        <ShieldCheck className="h-3 w-3 md:h-4 md:w-4" />
+                                        <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Head Trainer</span>
                                     </div>
-                                    <p className="mt-1 text-lg font-bold text-foreground">{gym.trainer || "Not Assigned"}</p>
+                                    <p className="mt-1 text-sm md:text-lg font-bold text-foreground">{gym.trainer || "Not Assigned"}</p>
                                 </div>
 
                                 <div className="flex items-center justify-between px-2">
-                                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Active Members</span>
-                                    <span className="text-lg font-black text-primary">{members.length}</span>
+                                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-muted-foreground">Active Members</span>
+                                    <span className="text-sm md:text-lg font-black text-primary">{members.length}</span>
                                 </div>
                             </div>
                         </div>
@@ -135,27 +138,33 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
                     {/* Right Side: Community Members */}
                     <div className="flex-1 flex flex-col overflow-hidden">
                         <style jsx>{`
+                            .custom-scroll {
+                                max-height: 500px;
+                                scrollbar-width: thin;
+                                scrollbar-color: oklch(0.65 0.25 25) transparent;
+                            }
                             .custom-scroll::-webkit-scrollbar {
-                                width: 6px;
+                                width: 5px;
                                 display: block !important;
                             }
                             .custom-scroll::-webkit-scrollbar-track {
                                 background: rgba(255, 255, 255, 0.05);
+                                border-radius: 10px;
                             }
                             .custom-scroll::-webkit-scrollbar-thumb {
                                 background: oklch(0.65 0.25 25);
                                 border-radius: 10px;
                             }
                         `}</style>
-                        <div className="p-8 border-b border-border/50">
-                            <h3 className="flex items-center gap-2 text-xl font-bold uppercase tracking-widest text-foreground">
-                                <Users className="h-5 w-5 text-primary" />
+                        <div className="p-4 md:p-8 border-b border-border/50 shrink-0">
+                            <h3 className="flex items-center gap-2 text-lg md:text-xl font-bold uppercase tracking-widest text-foreground">
+                                <Users className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                                 Community Members
                             </h3>
-                            <p className="text-sm text-muted-foreground mt-1">People currently training or registered at this location.</p>
+                            <p className="text-xs md:text-sm text-muted-foreground mt-1">People currently training or registered at this location.</p>
                         </div>
 
-                        <div className="flex-1 overflow-y-scroll custom-scroll p-6 space-y-4">
+                        <div className="flex-1 overflow-y-auto custom-scroll p-6 space-y-4">
                             {loading ? (
                                 <div className="flex h-full items-center justify-center py-20">
                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -167,6 +176,7 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
                                         onClick={async () => {
                                             if (!member.userId || member.userId === "null" || member.userId === "undefined") return
                                             setLoadingUser(true)
+                                            setShowComingSoon(false)
                                             try {
                                                 const res = await fetch(`http://${window.location.hostname}:8080/api/users/${member.userId}`)
                                                 if (res.ok) {
@@ -306,15 +316,19 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
                                     </div>
                                 </div>
 
-                                <button 
-                                    onClick={() => {
-                                        setViewingUser(null);
-                                        window.location.href = `/dashboard/profile?id=${viewingUser.id}`;
-                                    }}
-                                    className="w-full mt-4 bg-primary py-3 text-[10px] font-bold uppercase tracking-widest text-primary-foreground hover:bg-primary/90 transition-all border border-primary/20"
-                                >
-                                    Open Full Performance Profile
-                                </button>
+                                {showComingSoon ? (
+                                    <div className="w-full mt-4 flex items-center justify-center gap-2 bg-primary/10 border border-primary/30 rounded-sm py-3 text-[10px] font-bold uppercase tracking-widest text-primary animate-in slide-in-from-bottom-2 duration-300">
+                                        <Clock className="h-4 w-4 animate-pulse" />
+                                        <span>Messaging Coming Soon</span>
+                                    </div>
+                                ) : (
+                                    <button 
+                                        onClick={() => setShowComingSoon(true)}
+                                        className="w-full mt-4 bg-primary py-3 text-[10px] font-bold uppercase tracking-widest text-primary-foreground hover:bg-primary/90 transition-all border border-primary/20 flex items-center justify-center gap-2 shadow-[0_0_15px_oklch(0.65_0.25_25/0.2)] hover:shadow-[0_0_20px_oklch(0.65_0.25_25/0.4)]"
+                                    >
+                                        Connect / Message
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

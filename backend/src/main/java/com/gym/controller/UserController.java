@@ -21,6 +21,13 @@ public class UserController {
                 .orElse(org.springframework.http.ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/{id}")
+    public org.springframework.http.ResponseEntity<User> getUserById(@PathVariable java.util.UUID id) {
+        return userRepository.findById(id)
+                .map(org.springframework.http.ResponseEntity::ok)
+                .orElse(org.springframework.http.ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/login-or-register")
     public User loginOrRegister(@RequestBody User requestUser) {
         User user = userRepository.findByEmail(requestUser.getEmail())

@@ -52,6 +52,7 @@ export default function ExercisesPage() {
   const [activeTab, setActiveTab] = useState<"exercises" | "plans">("exercises")
   const [dbExercises, setDbExercises] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [visibleCount, setVisibleCount] = useState(12)
 
   // Fetch from Spring Boot API
   useEffect(() => {
@@ -179,57 +180,72 @@ export default function ExercisesPage() {
 
             {/* Exercise Grid */}
             {!loading && (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {filtered.map((exercise) => (
-                  <button
-                    key={exercise.id}
-                    onClick={() => setSelectedExercise(exercise)}
-                    className="group relative flex flex-col overflow-hidden rounded-sm border border-border bg-card p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_4px_20px_oklch(0_0_0/0.3)]"
-                  >
-                    {/* Top row */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary/10">
-                        <Dumbbell className="h-5 w-5 text-primary" />
-                      </div>
+              <div className="flex flex-col gap-8">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {filtered.slice(0, visibleCount).map((exercise) => (
+                    <button
+                      key={exercise.id}
+                      onClick={() => setSelectedExercise(exercise)}
+                      className="group relative flex flex-col overflow-hidden rounded-sm border border-border bg-card p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_4px_20px_oklch(0_0_0/0.3)]"
+                    >
+                      {/* Top row */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary/10">
+                          <Dumbbell className="h-5 w-5 text-primary" />
+                        </div>
                         <span
-                        className={cn(
-                          "rounded-sm px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                          exercise.difficultyLevel === "Beginner"
-                            ? "bg-green-500/10 text-green-400"
-                            : exercise.difficultyLevel === "Intermediate"
-                            ? "bg-yellow-500/10 text-yellow-400"
-                            : "bg-primary/10 text-primary"
+                          className={cn(
+                            "rounded-sm px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                            exercise.difficultyLevel === "Beginner"
+                              ? "bg-green-500/10 text-green-400"
+                              : exercise.difficultyLevel === "Intermediate"
+                                ? "bg-yellow-500/10 text-yellow-400"
+                                : "bg-primary/10 text-primary"
+                          )}
+                        >
+                          {exercise.difficultyLevel}
+                        </span>
+                      </div>
+
+                      <h3 className="mt-4 font-[var(--font-oswald)] text-lg font-semibold uppercase text-foreground">
+                        {exercise.name}
+                      </h3>
+
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="rounded-sm bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
+                          {exercise.muscleGroup}
+                        </span>
+                        {exercise.secondaryMuscles && (
+                          <span className="text-xs text-muted-foreground">{exercise.secondaryMuscles}</span>
                         )}
-                      >
-                        {exercise.difficultyLevel}
-                      </span>
+                      </div>
+
+                      <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                        {exercise.proTip || "Master the form with our visual guide."}
+                      </p>
+
+                      {/* Hover accent */}
+                      <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-primary transition-all duration-500 group-hover:w-full" />
+                    </button>
+                  ))}
+
+                  {filtered.length === 0 && (
+                    <div className="col-span-full py-20 text-center">
+                      <p className="text-muted-foreground">No exercises found for this filter.</p>
                     </div>
+                  )}
+                </div>
 
-                    <h3 className="mt-4 font-[var(--font-oswald)] text-lg font-semibold uppercase text-foreground">
-                      {exercise.name}
-                    </h3>
-
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="rounded-sm bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
-                        {exercise.muscleGroup}
-                      </span>
-                      {exercise.secondaryMuscles && (
-                        <span className="text-xs text-muted-foreground">{exercise.secondaryMuscles}</span>
-                      )}
-                    </div>
-
-                    <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                      {exercise.proTip || "Master the form with our visual guide."}
-                    </p>
-
-                    {/* Hover accent */}
-                    <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-primary transition-all duration-500 group-hover:w-full" />
-                  </button>
-                ))}
-
-                {filtered.length === 0 && (
-                  <div className="col-span-full py-20 text-center">
-                    <p className="text-muted-foreground">No exercises found for this filter.</p>
+                {/* Load More Button */}
+                {filtered.length > visibleCount && (
+                  <div className="flex justify-center pb-8">
+                    <button
+                      onClick={() => setVisibleCount(prev => prev + 12)}
+                      className="group flex items-center gap-3 rounded-sm border border-primary/20 bg-primary/5 px-8 py-4 text-xs font-bold uppercase tracking-widest text-primary transition-all hover:bg-primary/10 hover:shadow-[0_0_15px_oklch(0.65_0.25_25/0.1)]"
+                    >
+                      Load More Exercises
+                      <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </button>
                   </div>
                 )}
               </div>
