@@ -53,7 +53,7 @@ export default function ProfilePage() {
       const email = localStorage.getItem("userEmail")
       if (email) {
         try {
-          const res = await fetch(`http://localhost:8080/api/users/email/${email}`)
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/users/email/${email}`)
           if (res.ok) {
             const data = await res.json()
             setUserData(prev => ({ ...prev, ...data }))
