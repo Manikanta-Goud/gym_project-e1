@@ -144,7 +144,7 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
                                 scrollbar-color: oklch(0.65 0.25 25) transparent;
                             }
                             .custom-scroll::-webkit-scrollbar {
-                                width: 5px;
+                                width: 8px;
                                 display: block !important;
                             }
                             .custom-scroll::-webkit-scrollbar-track {
@@ -152,8 +152,13 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
                                 border-radius: 10px;
                             }
                             .custom-scroll::-webkit-scrollbar-thumb {
-                                background: oklch(0.65 0.25 25);
+                                background: oklch(0.65 0.25 25 / 0.4);
                                 border-radius: 10px;
+                                border: 2px solid transparent;
+                                background-clip: padding-box;
+                            }
+                            .custom-scroll::-webkit-scrollbar-thumb:hover {
+                                background: oklch(0.65 0.25 25);
                             }
                         `}</style>
                         <div className="p-4 md:p-8 border-b border-border/50 shrink-0">
@@ -161,10 +166,10 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
                                 <Users className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                                 Community Members
                             </h3>
-                            <p className="text-xs md:text-sm text-muted-foreground mt-1">People currently training or registered at this location.</p>
+                            <p className="text-xs md:text-sm text-muted-foreground mt-1">People currently training or registered at this location. (Scroll to see more)</p>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto custom-scroll p-6 space-y-4">
+                        <div className="flex-1 overflow-y-auto custom-scroll p-6 space-y-4 max-h-[60vh] md:max-h-[500px]">
                             {loading ? (
                                 <div className="flex h-full items-center justify-center py-20">
                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -315,6 +320,13 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
                                         <p className="text-xs font-medium text-foreground">{viewingUser.homeGym || "Iron Paradise"}</p>
                                     </div>
                                 </div>
+
+                                {viewingUser.weeklySchedule && (
+                                    <div className="space-y-1">
+                                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Weekly Schedule</span>
+                                        <p className="text-xs text-foreground italic opacity-90">{viewingUser.weeklySchedule}</p>
+                                    </div>
+                                )}
 
                                 {showComingSoon ? (
                                     <div className="w-full mt-4 flex items-center justify-center gap-2 bg-primary/10 border border-primary/30 rounded-sm py-3 text-[10px] font-bold uppercase tracking-widest text-primary animate-in slide-in-from-bottom-2 duration-300">

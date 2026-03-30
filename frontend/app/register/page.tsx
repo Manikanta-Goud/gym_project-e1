@@ -44,7 +44,8 @@ export default function RegisterPage() {
     gymLat: "",
     gymLng: "",
     role: "member" as "member" | "trainer",
-    isNewGym: false
+    isNewGym: false,
+    weeklySchedule: ""
   })
 
   // Search gyms from Spring Boot
@@ -136,7 +137,9 @@ export default function RegisterPage() {
           fitnessGoal: formData.fitnessGoal,
           experience: formData.experience,
           bio: formData.bio,
-          timing: formData.timing
+          timing: formData.timing,
+          homeGym: formData.gymName || "None",
+          weeklySchedule: formData.weeklySchedule
         })
       })
 
@@ -368,6 +371,20 @@ export default function RegisterPage() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Weekly Schedule */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                  Weekly Schedule
+                </label>
+                <input
+                  type="text"
+                  value={formData.weeklySchedule}
+                  onChange={(e) => setFormData({ ...formData, weeklySchedule: e.target.value })}
+                  className="rounded-sm border border-border bg-input px-4 py-3.5 text-sm text-foreground outline-none transition-all duration-300 placeholder:text-gym-text-dim focus:border-primary focus:shadow-[0_0_20px_oklch(0.65_0.25_25/0.15)]"
+                  placeholder="Mon-Wed-Fri, Morning Session"
+                />
               </div>
 
               {/* Timing */}

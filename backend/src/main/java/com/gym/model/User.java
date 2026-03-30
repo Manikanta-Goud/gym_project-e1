@@ -27,6 +27,8 @@ public class User {
     private Integer age;
     private String bio;
     private String timing;
+    private String homeGym;
+    private String weeklySchedule;
     
     private LocalDateTime lastLogin;
 }

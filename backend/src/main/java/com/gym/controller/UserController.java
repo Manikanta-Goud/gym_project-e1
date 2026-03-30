@@ -43,6 +43,8 @@ public class UserController {
         if (requestUser.getAge() != null) user.setAge(requestUser.getAge());
         if (requestUser.getBio() != null) user.setBio(requestUser.getBio());
         if (requestUser.getTiming() != null) user.setTiming(requestUser.getTiming());
+        if (requestUser.getHomeGym() != null) user.setHomeGym(requestUser.getHomeGym());
+        if (requestUser.getWeeklySchedule() != null) user.setWeeklySchedule(requestUser.getWeeklySchedule());
         
         user.setLastLogin(LocalDateTime.now());
         
