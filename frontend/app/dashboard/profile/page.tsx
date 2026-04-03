@@ -13,24 +13,19 @@ import {
   Edit3,
   Check,
   TrendingUp,
+  LogOut,
 } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { DashboardShell } from "@/components/dashboard-shell"
 import { cn } from "@/lib/utils"
 
-const schedule = [
-  { day: "Mon", active: true, time: "Morning" },
-  { day: "Tue", active: true, time: "Morning" },
-  { day: "Wed", active: false, time: "" },
-  { day: "Thu", active: true, time: "Evening" },
-  { day: "Fri", active: true, time: "Morning" },
-  { day: "Sat", active: true, time: "Afternoon" },
-  { day: "Sun", active: false, time: "" },
-]
+// Schedule will now be computed dynamically
+
 
 const achievements = [
-  { label: "First Match", icon: "lightning", unlocked: true },
-  { label: "10 Sessions", icon: "fire", unlocked: true },
-  { label: "PR Breaker", icon: "trophy", unlocked: true },
+  { label: "First Match", icon: "lightning", unlocked: false },
+  { label: "10 Sessions", icon: "fire", unlocked: false },
+  { label: "PR Breaker", icon: "trophy", unlocked: false },
   { label: "Social Butterfly", icon: "users", unlocked: false },
   { label: "Iron Veteran", icon: "medal", unlocked: false },
   { label: "Travel Rat", icon: "globe", unlocked: false },
@@ -41,6 +36,12 @@ export default function ProfilePage() {
   const [userData, setUserData] = useState<any>(null)
   const [editData, setEditData] = useState<any>({})
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
+  const handleLogout = () => {
+    localStorage.clear()
+    router.push("/login")
+  }
 
   useEffect(() => {
     // Set fallback name from localStorage if available
@@ -101,11 +102,37 @@ export default function ProfilePage() {
     username: userData?.username || (userData?.name ? userData.name.toLowerCase().replace(/\s+/g, '_') : "marcus_lifts"),
     goal: userData?.fitnessGoal || "Powerlifting",
     experience: userData?.experience || "Advanced",
-    gym: userData?.gym?.name || "Iron Paradise Gym",
+    gym: (userData?.homeGym && userData?.homeGym !== "None") ? userData.homeGym : "N/A",
     bio: userData?.bio || "Competitive powerlifter chasing the 1500 total. 5 years of training experience. Looking for a dedicated training partner who takes the sport seriously. I train at Iron Paradise Gym, mornings before work. Let us push some heavy weight together.",
     age: userData?.age?.toString() || "28",
     timing: userData?.timing || "Morning (5-7 AM)",
+    weeklySchedule: userData?.weeklySchedule || "Mon, Tue, Thu, Fri"
   }
+
+  const dynamicSchedule = [
+    { day: "Mon" },
+    { day: "Tue" },
+    { day: "Wed" },
+    { day: "Thu" },
+    { day: "Fri" },
+    { day: "Sat" },
+    { day: "Sun" },
+  ].map(s => {
+    const scheduleStr = (isEditing && editData.weeklySchedule !== undefined ? (editData.weeklySchedule || "") : (displayData.weeklySchedule || "")).toLowerCase();
+    const dayMatch = scheduleStr.match(new RegExp(`${s.day.toLowerCase()}(\\((m|e)\\))?`));
+    const isActive = !!dayMatch;
+    let time = "";
+    if (isActive) {
+      if (dayMatch[2] === 'm') time = "M";
+      else if (dayMatch[2] === 'e') time = "E";
+      else time = "Active";
+    }
+    return {
+      day: s.day,
+      active: isActive,
+      time: time
+    };
+  });
 
   return (
     <DashboardShell activeTab="Profile">
@@ -150,14 +177,38 @@ export default function ProfilePage() {
                   )}
                   <p className="mt-1 text-sm text-muted-foreground">@{displayData.username}</p>
                   <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <span className="flex items-center gap-1.5 rounded-sm bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                    <button 
+                      disabled={!isEditing}
+                      onClick={() => {
+                        const goalsCount = ["Cardio", "Strength", "Bulking", "Cutting", "Powerlifting"];
+                        const current = goalsCount.indexOf(editData.fitnessGoal || displayData.goal);
+                        const next = goalsCount[(current + 1) % goalsCount.length];
+                        setEditData({ ...editData, fitnessGoal: next });
+                      }}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-sm px-3 py-1 text-xs font-semibold transition-all",
+                        isEditing ? "bg-primary text-primary-foreground hover:scale-105" : "bg-primary/10 text-primary"
+                      )}
+                    >
                       <Target className="h-3 w-3" />
-                      {displayData.goal}
-                    </span>
-                    <span className="flex items-center gap-1.5 rounded-sm bg-secondary px-3 py-1 text-xs font-semibold text-foreground">
+                      {isEditing ? (editData.fitnessGoal || displayData.goal) : displayData.goal}
+                    </button>
+                    <button 
+                      disabled={!isEditing}
+                      onClick={() => {
+                        const expLevels = ["Beginner", "Intermediate", "Advanced", "Expert"];
+                        const current = expLevels.indexOf(editData.experience || displayData.experience);
+                        const next = expLevels[(current + 1) % expLevels.length];
+                        setEditData({ ...editData, experience: next });
+                      }}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-sm px-3 py-1 text-xs font-semibold transition-all",
+                        isEditing ? "bg-foreground text-background hover:scale-105" : "bg-secondary text-foreground"
+                      )}
+                    >
                       <Award className="h-3 w-3" />
-                      {displayData.experience}
-                    </span>
+                      {isEditing ? (editData.experience || displayData.experience) : displayData.experience}
+                    </button>
                     <span className="flex items-center gap-1.5 rounded-sm bg-secondary px-3 py-1 text-xs font-semibold text-muted-foreground">
                       <MapPin className="h-3 w-3" />
                       {displayData.gym}
@@ -165,33 +216,42 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => {
-                    if (isEditing) {
-                      handleSave()
-                    } else {
-                      setIsEditing(true)
-                    }
-                  }}
-                  className={cn(
-                    "flex items-center gap-2 rounded-sm px-5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all duration-300",
-                    isEditing
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"
-                  )}
-                >
-                  {isEditing ? (
-                    <>
-                      <Check className="h-3 w-3" />
-                      Save Profile
-                    </>
-                  ) : (
-                    <>
-                      <Edit3 className="h-3 w-3" />
-                      Edit Profile
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      if (isEditing) {
+                        handleSave()
+                      } else {
+                        setIsEditing(true)
+                      }
+                    }}
+                    className={cn(
+                      "flex items-center gap-2 rounded-sm px-5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all duration-300",
+                      isEditing
+                        ? "bg-primary text-primary-foreground"
+                        : "border border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                    )}
+                  >
+                    {isEditing ? (
+                      <>
+                        <Check className="h-3 w-3" />
+                        Save Profile
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 className="h-3 w-3" />
+                        Edit Profile
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 rounded-sm border border-border px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-all duration-300 hover:border-destructive/30 hover:text-destructive"
+                  >
+                    <LogOut className="h-3 w-3" />
+                    Logout
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -223,14 +283,45 @@ export default function ProfilePage() {
                   Weekly Schedule
                 </h3>
                 <div className="mt-4 grid grid-cols-7 gap-2">
-                  {schedule.map((s) => (
-                    <div
+                  {dynamicSchedule.map((s) => (
+                    <button
                       key={s.day}
+                      disabled={!isEditing}
+                      onClick={() => {
+                        if (!isEditing) return
+                        const currentSchedule = editData.weeklySchedule || displayData.weeklySchedule
+                        const daysMap = currentSchedule.split(/[\s,]+/).filter((d: string) => Boolean(d)).reduce((acc: any, d: string) => {
+                          const match = d.match(/([a-zA-Z]+)(\((m|e)\))?/i);
+                          if (match) acc[match[1].toLowerCase()] = match[3] || "active";
+                          return acc;
+                        }, {});
+                        
+                        const dayKey = s.day.toLowerCase();
+                        const currentState = daysMap[dayKey]; // undefined, active, m, e
+
+                        if (!currentState) {
+                          daysMap[dayKey] = "active";
+                        } else if (currentState === "active") {
+                          daysMap[dayKey] = "m";
+                        } else if (currentState === "m") {
+                          daysMap[dayKey] = "e";
+                        } else {
+                          delete daysMap[dayKey];
+                        }
+
+                        const newSchedule = Object.entries(daysMap).map(([day, time]) => {
+                          const capDay = day.charAt(0).toUpperCase() + day.slice(1);
+                          return time === "active" ? capDay : `${capDay}(${time})`;
+                        }).join(", ");
+                        
+                        setEditData({ ...editData, weeklySchedule: newSchedule })
+                      }}
                       className={cn(
-                        "flex flex-col items-center gap-1.5 rounded-sm border p-3 transition-all",
+                        "flex flex-col items-center gap-1.5 rounded-sm border p-3 transition-all h-full min-h-[80px] justify-center",
                         s.active
                           ? "border-primary/30 bg-primary/5"
-                          : "border-border bg-secondary/30"
+                          : "border-border bg-secondary/30",
+                        isEditing && "hover:border-primary/50 cursor-pointer"
                       )}
                     >
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -238,13 +329,21 @@ export default function ProfilePage() {
                       </span>
                       {s.active ? (
                         <>
-                          <div className="h-2 w-2 rounded-full bg-primary" />
-                          <span className="text-[9px] text-primary">{s.time}</span>
+                          <div className={cn(
+                            "h-2 w-2 rounded-full shadow-[0_0_8px_currentcolor]", 
+                            s.time === "M" ? "bg-orange-500 text-orange-500" : s.time === "E" ? "bg-blue-400 text-blue-400" : "bg-primary text-primary"
+                          )} />
+                          <span className={cn(
+                            "text-[10px] font-black tracking-tighter", 
+                            s.time === "M" ? "text-orange-500" : s.time === "E" ? "text-blue-400" : "text-primary"
+                          )}>
+                            {s.time === "Active" ? "✓" : s.time}
+                          </span>
                         </>
                       ) : (
                         <div className="h-2 w-2 rounded-full bg-muted-foreground/30" />
                       )}
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -252,10 +351,10 @@ export default function ProfilePage() {
               {/* Stats */}
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 {[
-                  { label: "Total Sessions", value: "12", icon: Flame },
-                  { label: "Partners", value: "12d", icon: User },
-                  { label: "Current Streak", value: "31", icon: TrendingUp },
-                  { label: "PRs Set", value: "Details", icon: Award },
+                  { label: "Total Sessions", value: "0", icon: Flame },
+                  { label: "Partners", value: "0", icon: User },
+                  { label: "Current Streak", value: "0", icon: TrendingUp },
+                  { label: "PRs Set", value: "0", icon: Award },
                 ].map((stat) => (
                   <div
                     key={stat.label}

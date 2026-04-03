@@ -43,4 +43,10 @@ public class GymController {
         member.setGymId(id);
         return gymService.saveMember(member);
     }
+
+    @DeleteMapping("/{id}/members/{userId}")
+    public org.springframework.http.ResponseEntity<Void> leaveCommunity(@PathVariable UUID id, @PathVariable UUID userId) {
+        gymService.leaveCommunity(id, userId);
+        return org.springframework.http.ResponseEntity.ok().build();
+    }
 }

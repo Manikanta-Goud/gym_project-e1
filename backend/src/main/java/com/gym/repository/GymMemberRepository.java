@@ -9,4 +9,5 @@ import java.util.UUID;
 @Repository
 public interface GymMemberRepository extends JpaRepository<GymMember, UUID> {
     List<GymMember> findByGymId(UUID gymId);
+    void deleteByGymIdAndUserId(UUID gymId, UUID userId);
 }

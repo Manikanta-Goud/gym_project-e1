@@ -32,6 +32,11 @@ public class GymService {
         return gymMemberRepository.save(member);
     }
 
+    @org.springframework.transaction.annotation.Transactional
+    public void leaveCommunity(UUID gymId, UUID userId) {
+        gymMemberRepository.deleteByGymIdAndUserId(gymId, userId);
+    }
+
     public List<Gym> searchGyms(String query) {
         return gymRepository.findByNameContainingIgnoreCase(query);
     }

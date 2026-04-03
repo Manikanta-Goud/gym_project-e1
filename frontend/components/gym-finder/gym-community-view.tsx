@@ -40,6 +40,9 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
     const [viewingUser, setViewingUser] = useState<any>(null)
     const [loadingUser, setLoadingUser] = useState(false)
     const [showComingSoon, setShowComingSoon] = useState(false)
+    const [isMember, setIsMember] = useState(false)
+
+    const currentUserId = typeof window !== 'undefined' ? localStorage.getItem("userId") : null
 
     const fetchMembers = async () => {
         setLoading(true)
@@ -48,6 +51,12 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
             if (!response.ok) throw new Error('Failed to fetch members')
             const data = await response.json()
             setMembers(data)
+            
+            // Check if current user is a member
+            if (currentUserId) {
+                const found = data.find((m: Member) => m.userId === currentUserId)
+                setIsMember(!!found)
+            }
         } catch (error) {
             console.error('Error fetching members from Spring Boot:', error)
         } finally {
@@ -77,12 +86,69 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
             })
             
             if (!response.ok) throw new Error('Failed to join community')
+
+            // Automatically update User's Home Gym if they don't have one saved
+            const email = localStorage.getItem("userEmail")
+            if (email) {
+                try {
+                    const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/users/email/${email}`)
+                    if (userRes.ok) {
+                        const userData = await userRes.json()
+                        const currentGym = userData.homeGym
+                        if (!currentGym || currentGym === "None" || currentGym === "N/A") {
+                            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/users/login-or-register`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    ...userData,
+                                    homeGym: gym.name
+                                })
+                            })
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to sync automatically home gym update", e)
+                }
+            }
             
             setShowJoinModal(false)
             fetchMembers()
         } catch (error) {
             console.error('Error joining community via Spring Boot:', error)
             alert('Failed to join. Please try again.')
+        }
+    }
+
+    const handleExit = async () => {
+        if (!currentUserId) return
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/gyms/${gym.id}/members/${currentUserId}`, {
+                method: 'DELETE',
+            })
+            
+            if (!response.ok) throw new Error('Failed to exit community')
+
+            // Update User's Home Gym to N/A
+            const email = localStorage.getItem("userEmail")
+            if (email) {
+                const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/users/email/${email}`)
+                if (userRes.ok) {
+                    const userData = await userRes.json()
+                    await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/users/login-or-register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ...userData,
+                            homeGym: "N/A"
+                        })
+                    })
+                }
+            }
+            
+            fetchMembers()
+        } catch (error) {
+            console.error('Error exiting community:', error)
+            alert('Failed to exit. Please try again.')
         }
     }
 
@@ -248,13 +314,22 @@ export function GymCommunityView({ gym, onClose }: GymCommunityViewProps) {
                             )}
                         </div>
 
-                        <div className="p-8 bg-secondary/10 border-t border-border/50 flex justify-end">
-                            <button 
-                                onClick={() => setShowJoinModal(true)}
-                                className="rounded-sm bg-primary px-8 py-3 text-sm font-bold uppercase tracking-widest text-primary-foreground transition-all hover:bg-primary/90 hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/20"
-                            >
-                                Join This Community
-                            </button>
+                        <div className="p-8 bg-secondary/10 border-t border-border/50 flex justify-end gap-4">
+                            {isMember ? (
+                                <button 
+                                    onClick={handleExit}
+                                    className="rounded-sm border border-destructive/50 bg-destructive/10 px-8 py-3 text-sm font-bold uppercase tracking-widest text-destructive transition-all hover:bg-destructive hover:text-destructive-foreground active:scale-95 shadow-lg"
+                                >
+                                    Exit Community
+                                </button>
+                            ) : (
+                                <button 
+                                    onClick={() => setShowJoinModal(true)}
+                                    className="rounded-sm bg-primary px-8 py-3 text-sm font-bold uppercase tracking-widest text-primary-foreground transition-all hover:bg-primary/90 hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/20"
+                                >
+                                    Join This Community
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
