@@ -119,7 +119,7 @@ export function DashboardShell({ children, activeTab = "Gym Finder" }: { childre
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setSidebarOpen(false)}>
+        <div className="fixed inset-0 z-[9999] lg:hidden" onClick={() => setSidebarOpen(false)}>
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
           <aside className="absolute left-0 top-0 h-full w-64 border-r border-border bg-card" onClick={(e) => e.stopPropagation()}>
             <div className="flex h-16 items-center justify-between border-b border-border px-6">
@@ -162,9 +162,9 @@ export function DashboardShell({ children, activeTab = "Gym Finder" }: { childre
       )}
 
       {/* Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden relative z-0">
         {/* Top Bar */}
-        <header className="flex h-16 items-center justify-between border-b border-border bg-card/50 px-4 backdrop-blur-sm md:px-6">
+        <header className="flex relative z-[5000] h-16 items-center justify-between border-b border-border bg-card/50 px-4 backdrop-blur-sm md:px-6">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(true)}

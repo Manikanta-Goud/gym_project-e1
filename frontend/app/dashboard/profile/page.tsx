@@ -39,6 +39,7 @@ const achievements = [
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [userData, setUserData] = useState<any>(null)
+  const [editData, setEditData] = useState<any>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -46,7 +47,7 @@ export default function ProfilePage() {
     const storedName = localStorage.getItem("userName")
     const storedGymId = localStorage.getItem("userGymId")
     if (storedName) {
-      setUserData(prev => ({ ...prev, name: storedName }))
+      setUserData((prev: any) => ({ ...prev, name: storedName }))
     }
 
     const fetchUser = async () => {
@@ -56,7 +57,8 @@ export default function ProfilePage() {
           const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/users/email/${email}`)
           if (res.ok) {
             const data = await res.json()
-            setUserData(prev => ({ ...prev, ...data }))
+            setUserData((prev: any) => ({ ...prev, ...data }))
+            setEditData(data)
           }
         } catch (e) {
           console.error("Failed to fetch user data:", e)
@@ -67,6 +69,32 @@ export default function ProfilePage() {
 
     fetchUser()
   }, [])
+
+  const handleSave = async () => {
+    const email = localStorage.getItem("userEmail")
+    if (!email) return
+
+    try {
+      const payload = {
+        email,
+        ...editData
+      }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/users/login-or-register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setUserData((prev: any) => ({ ...prev, ...updated }))
+        if (updated.name) localStorage.setItem("userName", updated.name)
+        if (updated.fitnessGoal) localStorage.setItem("userGoal", updated.fitnessGoal)
+        setIsEditing(false)
+      }
+    } catch (e) {
+      console.error("Failed to save profile", e)
+    }
+  }
 
   const displayData = {
     name: userData?.name || "Marcus Johnson",
@@ -108,9 +136,18 @@ export default function ProfilePage() {
 
               <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div>
-                  <h2 className="font-[var(--font-oswald)] text-3xl font-bold uppercase text-foreground">
-                    {displayData.name}
-                  </h2>
+                  {isEditing ? (
+                    <input 
+                      type="text" 
+                      value={editData.name || ""} 
+                      onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                      className="bg-input border border-border rounded-sm px-2 py-1 text-2xl font-bold uppercase text-foreground w-full max-w-[250px]"
+                    />
+                  ) : (
+                    <h2 className="font-[var(--font-oswald)] text-3xl font-bold uppercase text-foreground">
+                      {displayData.name}
+                    </h2>
+                  )}
                   <p className="mt-1 text-sm text-muted-foreground">@{displayData.username}</p>
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <span className="flex items-center gap-1.5 rounded-sm bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
@@ -129,7 +166,13 @@ export default function ProfilePage() {
                 </div>
 
                 <button
-                  onClick={() => setIsEditing(!isEditing)}
+                  onClick={() => {
+                    if (isEditing) {
+                      handleSave()
+                    } else {
+                      setIsEditing(true)
+                    }
+                  }}
                   className={cn(
                     "flex items-center gap-2 rounded-sm px-5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all duration-300",
                     isEditing
@@ -161,9 +204,17 @@ export default function ProfilePage() {
                 <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   About
                 </h3>
-                <p className="mt-3 text-sm leading-relaxed text-foreground">
-                  {displayData.bio}
-                </p>
+                {isEditing ? (
+                  <textarea 
+                    value={editData.bio || ""} 
+                    onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
+                    className="w-full mt-3 rounded-sm border border-border bg-input p-3 text-sm text-foreground outline-none focus:border-primary/50 min-h-[100px]"
+                  />
+                ) : (
+                  <p className="mt-3 text-sm leading-relaxed text-foreground">
+                    {displayData.bio}
+                  </p>
+                )}
               </div>
 
               {/* Weekly Schedule */}
@@ -230,18 +281,43 @@ export default function ProfilePage() {
                   Details
                 </h3>
                 <div className="mt-4 flex flex-col gap-4">
-                  {[
-                    { label: "Age", value: displayData.age },
-                    { label: "Goal", value: displayData.goal },
-                    { label: "Experience", value: displayData.experience },
-                    { label: "Timing", value: displayData.timing },
-                    { label: "Home Gym", value: displayData.gym },
-                  ].map((item) => (
-                    <div key={item.label} className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">{item.label}</span>
-                      <span className="text-sm font-medium text-foreground">{item.value}</span>
-                    </div>
-                  ))}
+                  {isEditing ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground mr-2">Age</span>
+                        <input type="number" value={editData.age || ""} onChange={e => setEditData({...editData, age: e.target.value ? parseInt(e.target.value, 10) : ""})} className="bg-input border border-border rounded-sm px-2 py-1 text-foreground text-sm w-32 text-right" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground mr-2">Goal</span>
+                        <input type="text" value={editData.fitnessGoal || ""} onChange={e => setEditData({...editData, fitnessGoal: e.target.value})} className="bg-input border border-border rounded-sm px-2 py-1 text-foreground text-sm w-32 text-right" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground mr-2">Experience</span>
+                        <input type="text" value={editData.experience || ""} onChange={e => setEditData({...editData, experience: e.target.value})} className="bg-input border border-border rounded-sm px-2 py-1 text-foreground text-sm w-32 text-right" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground mr-2">Timing</span>
+                        <input type="text" value={editData.timing || ""} onChange={e => setEditData({...editData, timing: e.target.value})} className="bg-input border border-border rounded-sm px-2 py-1 text-foreground text-sm w-32 text-right" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground mr-2">Home Gym</span>
+                        <span className="text-sm font-medium text-foreground">{displayData.gym}</span>
+                      </div>
+                    </>
+                  ) : (
+                    [
+                      { label: "Age", value: displayData.age },
+                      { label: "Goal", value: displayData.goal },
+                      { label: "Experience", value: displayData.experience },
+                      { label: "Timing", value: displayData.timing },
+                      { label: "Home Gym", value: displayData.gym },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">{item.label}</span>
+                        <span className="text-sm font-medium text-foreground">{item.value}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
