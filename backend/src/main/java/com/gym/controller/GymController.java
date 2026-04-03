@@ -9,6 +9,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/gyms")
+@CrossOrigin(origins = "*") // Allow all origins like Vercel and localhost
 public class GymController {
 
     @Autowired

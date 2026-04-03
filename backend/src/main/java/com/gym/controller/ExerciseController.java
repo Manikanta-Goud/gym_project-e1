@@ -9,7 +9,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/exercises")
-@CrossOrigin(origins = "http://localhost:3000") // Allow Next.js requests
+@CrossOrigin(origins = "*") // Allow all origins like Vercel and localhost
 public class ExerciseController {
 
     @Autowired

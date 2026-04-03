@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "*") // Allow all origins like Vercel and localhost
 public class UserController {
 
     @Autowired
